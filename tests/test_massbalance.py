@@ -12,10 +12,14 @@ def test_balancing_offset_removes_unsupported_deposition():
     """A field with net deposition and no upstream source has a positive-V_acc
     surplus; balancing_offset returns a negative shift that, once added, leaves no
     surplus (within error), and is a minimum (<= 0)."""
-    ny, nx = 8, 4
-    props, valid = _straight_down_props(ny, nx)
-    res = 5.0; perror = np.full((ny, nx), 0.001)
-    dod = np.zeros((ny, nx)); dod[1:7, 2] = +0.10          # deposition, no upstream erosion
+    rd = pytest.importorskip("richdem")
+    from catchment_dod_balance.massbalance import dinf_proportions
+    n = 41; res = 5.0
+    yy, xx = np.mgrid[0:n, 0:n]
+    dem = 100 - np.hypot(yy - n // 2, xx - n // 2)         # cone: interior peak (uncontaminated interior)
+    props, valid = dinf_proportions(dem, breach=True)
+    perror = np.full((n, n), 0.002)
+    dod = np.zeros((n, n)); dod[n // 2 + 6, n // 2 + 6] = +0.5   # unsupported deposition, interior
     dz = balancing_offset(dod, perror, props, valid, res)
     assert dz < 0                                          # must add erosion
     after = mass_balance(dod + dz, perror, props, valid, res)
