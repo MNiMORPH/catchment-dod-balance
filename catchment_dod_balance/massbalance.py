@@ -183,3 +183,38 @@ def mass_balance(dod, perror, props, valid, res, *, z=1.96):
             "sigma_Vacc": np.where(valid, sigma_Vacc, np.nan),
             "contaminated": contaminated,
             "surplus": surplus}
+
+
+def balancing_offset(dod, perror, props, valid, res, *, z=1.96, exclude=None, keep=1.0):
+    """Minimum uniform vertical shift to add to ``dod`` so that -- within error -- no
+    catchment gains sediment it cannot source: after ``dod += offset``, no evaluable
+    cell has ``V_acc > z*sigma_Vacc``.
+
+    Physical basis: co-registration to an assumed-stable surface can warp the whole
+    DoD vertically (hiding erosion as "less deposition"); the datum that instead
+    respects sediment continuity is the one that removes unphysical downstream
+    deposition. Shifting ``dod`` by ``dz`` shifts ``V_acc(c)`` by ``dz*area*N(c)``
+    (``N`` = fractional upstream cell count), so the binding constraint is the cell
+    with the largest deposition **surplus per unit upstream area**. The result is
+    ``<= 0`` (removes excess deposition = adds erosion) and is a **minimum**: sediment
+    exported from the catchment means the true shift is at least this large.
+
+    ``exclude``: cells to drop from the constraint (e.g. an off-map-fed floodplain --
+    handle that FIRST; it is a downstream sink with an off-map source). ``keep`` < 1
+    sets the datum from the ``keep`` quantile of per-area surplus rather than the
+    single worst cell (robust to noise / a lone blunder).
+    """
+    area = res * res
+    out = mass_balance(dod, perror, props, valid, res, z=z)
+    V, sig, contam = out["V_acc"], out["sigma_Vacc"], out["contaminated"]
+    vmask = np.asarray(valid, bool) & np.isfinite(np.asarray(dod, float))
+    N, _ = weighted_accumulation(vmask.astype(float), props, valid)
+    m = vmask & np.isfinite(V) & ~contam & (N > 0)
+    if exclude is not None:
+        m &= ~np.asarray(exclude, bool)
+    surplus_per_area = (V - z * sig) / (area * np.maximum(N, 1.0))
+    s = surplus_per_area[m]; s = s[np.isfinite(s)]
+    if s.size == 0:
+        return 0.0
+    thr = float(np.quantile(s, keep)) if keep < 1.0 else float(s.max())
+    return -max(thr, 0.0)

@@ -4,7 +4,22 @@ physical erosion-then-deposition."""
 import numpy as np
 import pytest
 
-from catchment_dod_balance.massbalance import weighted_accumulation, mass_balance
+from catchment_dod_balance.massbalance import (weighted_accumulation, mass_balance,
+                                               balancing_offset)
+
+
+def test_balancing_offset_removes_unsupported_deposition():
+    """A field with net deposition and no upstream source has a positive-V_acc
+    surplus; balancing_offset returns a negative shift that, once added, leaves no
+    surplus (within error), and is a minimum (<= 0)."""
+    ny, nx = 8, 4
+    props, valid = _straight_down_props(ny, nx)
+    res = 5.0; perror = np.full((ny, nx), 0.001)
+    dod = np.zeros((ny, nx)); dod[1:7, 2] = +0.10          # deposition, no upstream erosion
+    dz = balancing_offset(dod, perror, props, valid, res)
+    assert dz < 0                                          # must add erosion
+    after = mass_balance(dod + dz, perror, props, valid, res)
+    assert not after["surplus"].any()                     # surplus removed within error
 
 
 def _straight_down_props(ny, nx):
