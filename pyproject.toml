@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "catchment-dod-balance"
+version = "0.0.1"
+description = "Internal validation of lidar DEMs of Difference by routed sediment mass conservation (Exner continuity) at catchment scale"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Andrew D. Wickert", email = "awickert@umn.edu" }]
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+routing = ["richdem"]   # D-infinity flow proportions + breaching for dinf_proportions
+dev = ["pytest"]
+
+[project.urls]
+Repository = "https://github.com/MNiMORPH/catchment-dod-balance"
+DevelopedIn = "https://github.com/MNiMORPH/lidar-diff-icp"
+
+[tool.setuptools.packages.find]
+include = ["catchment_dod_balance*"]

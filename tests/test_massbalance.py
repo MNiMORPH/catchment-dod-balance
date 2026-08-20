@@ -4,7 +4,7 @@ physical erosion-then-deposition."""
 import numpy as np
 import pytest
 
-from lidar_diff_icp.massbalance import weighted_accumulation, mass_balance
+from catchment_dod_balance.massbalance import weighted_accumulation, mass_balance
 
 
 def _straight_down_props(ny, nx):
@@ -62,7 +62,7 @@ def test_mass_balance_end_to_end_with_richdem():
     originates at an interior peak (uncontaminated interior). A dug pit that only
     fills (deposition, no upstream erosion) must raise a surplus flag."""
     rd = pytest.importorskip("richdem")
-    from lidar_diff_icp.massbalance import dinf_proportions
+    from catchment_dod_balance.massbalance import dinf_proportions
     n = 41; res = 5.0
     yy, xx = np.mgrid[0:n, 0:n]
     dem = 100 - np.hypot(yy - n // 2, xx - n // 2)          # cone, peak in the centre
